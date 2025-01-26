@@ -11,6 +11,23 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.keys import Keys
+import logging
+import os
+
+
+log_formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(funcName)s - %(message)s')
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(log_formatter)
+stream_handler.setLevel(logging.DEBUG)
+
+
+app_log = logging.getLogger('duo_logger')
+app_log.setLevel(logging.DEBUG)
+app_log.addHandler(stream_handler)
+
+
+BASE_URL = "https://www.deepl.com/ru/translator"
 
 
 def click_button(xpath: str, timeout=3) -> None:
@@ -35,7 +52,7 @@ def set_viewport_size(driver, width, height):
 
 
 def random_mouse_movements(driver):
-    print("Передвигаю курсор на рандомные точки...")
+    app_log.info("Передвигаю курсор на рандомные точки...")
     for _ in range(30):
         try:
             x = random.randint(1 * _, 10 * _)
@@ -48,6 +65,7 @@ def random_mouse_movements(driver):
 
 
 if __name__ == '__main__':
+    app_log.info("Настройка браузера...")
     user_agent = FakeUserAgent().chrome
     options = webdriver.ChromeOptions()
     options.add_argument("--disable-infobars")
@@ -63,30 +81,55 @@ if __name__ == '__main__':
     options.add_argument('--disable-dev-shm-usage')
     browser = webdriver.Chrome(service=Service(executable_path="C:/chromedriver/chromedriver.exe"),
                                options=options)
-    #  browser.set_page_load_timeout(10)
+
+    with open("input.txt", encoding="utf8") as file:
+        app_log.info("Читаю текст из input файла")
+        input_text = file.read()
 
     set_viewport_size(browser, 1400, 800)
 
-    browser.get("https://www.google.com")
-    print(browser.title)
+    app_log.info("Открываю страницу Deepl...")
+    browser.get(BASE_URL)
+    # random_mouse_movements(browser)
+    # Настроить язык.
 
-    input_label = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH, '//*[@id="APjFqb"]')))
-    input_label.send_keys("cats")
+    # Поиск входного поля, вставка значений
+    input_label = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                  '/html/body/div[1]/div[1]/div/div[3]'
+                                                                                  '/div[2]/div[1]/div[2]/div[1]/main/'
+                                                                                  'div[2]/nav/div/div[2]/div/div/'
+                                                                                  'div[1]/div/div/div/section/div/'
+                                                                                  'div[2]/div[1]/section/div/'
+                                                                                  'div[1]/d-textarea/div[1]')))
+    input_label.send_keys(input_text)
     input_label.send_keys(Keys.ENTER)
 
-    # click_button('/html/body/div[3]/div[3] ')
-    # browser.execute_script("window.scrollTo(0, 100)")  # document.body.scrollHeight)")
+    app_log.info("Ожидаю перевод 5 секунд...")
+    sleep(5)
+
+    # Чтение выходных данных
+    try:
+        result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                      '/html/body/div[1]/div[1]/div/div[3]'
+                                                                                      '/div[2]/div[1]/div[2]/div[1]/main/'
+                                                                                      'div[2]/nav/div/div[2]/div/div/'
+                                                                                      'div[1]/div/div/div/section/div/'
+                                                                                      'div[2]/div[3]/section/div[1]/'
+                                                                                      'd-textarea/div')))
+    except Exception:
+        result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                       '/html/body/div[1]/div[1]/div/'
+                                                                                       'div[2]/div[2]/div[1]/div[2]/'
+                                                                                       'div[1]/main/div[2]/nav/div/'
+                                                                                       'div[2]/div/div/div[1]/div/div/'
+                                                                                       'div/section/div/div[2]/div[3]/'
+                                                                                       'section/div[1]/d-textarea/'
+                                                                                       'div')))
+    result_text = result_field.text
+    app_log.info("Вывод данных в файл...")
+    print(result_text)
 
     browser.close()
-
-    session = requests.Session()
-    page = session.get("https://www.google.com")
-    soup = BeautifulSoup(page.text, "html.parser")
-    print(soup.find("title").text)
-
-    # h3_tag = soup.findAll("h3")
-    # for sub_tag in h3_tag:
-    #     for a_tag in sub_tag:
-    #         if f"{year}/{str_month}/{str_day}" in a_tag.get("href"):
-    #             new_url = unquote(a_tag.get("href"))
-    # certain_elem = soup.find("a")
+    app_log.info("Закрываю браузер. Завершение работы программы.")
+    os.system("taskkill /f /IM chrome.exe >nul 2>&1")
+    os.system("taskkill /f /IM chromedriver.exe >nul 2>&1")
