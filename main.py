@@ -43,6 +43,23 @@ def click_button(xpath: str, timeout=3) -> None:
     cur_button.click()
 
 
+def split_text_to_blocks(file_path, block_size=1500):
+    """
+    Функция читает текст из файла и разбивает его на блоки по block_size символов.
+
+    :param file_path: путь к текстовому файлу
+    :param block_size: размер блока в символах (по умолчанию 5000)
+    :return: список блоков текста
+    """
+    with open(file_path, 'r', encoding='utf-8') as file:
+        text = file.read()
+    app_log.info("Чтение текста из входного файла и разбивка на блоки...")
+    # Разбиваем текст на блоки по block_size символов
+    blocks = [text[i:i + block_size] for i in range(0, len(text), block_size)]
+
+    return blocks
+
+
 def set_viewport_size(driver, width, height):
     window_size = driver.execute_script("""
         return [window.outerWidth - window.innerWidth + arguments[0],
@@ -69,7 +86,7 @@ if __name__ == '__main__':
     user_agent = FakeUserAgent().chrome
     options = webdriver.ChromeOptions()
     options.add_argument("--disable-infobars")
-    # options.add_argument("--headless=new")
+    options.add_argument("--headless=new")
     options.add_argument(f'--user-agent={user_agent}')
     options.add_argument("--incognito")
     options.add_argument("start-maximized")
@@ -82,10 +99,8 @@ if __name__ == '__main__':
     browser = webdriver.Chrome(service=Service(executable_path="C:/chromedriver/chromedriver.exe"),
                                options=options)
 
-    with open("input.txt", encoding="utf8") as file:
-        app_log.info("Читаю текст из input файла")
-        input_text = file.read()
-
+    text_blocks = split_text_to_blocks("input.txt")
+    app_log.info(f"Обнаружено блоков: {len(text_blocks)}")
     set_viewport_size(browser, 1400, 800)
 
     app_log.info("Открываю страницу Deepl...")
@@ -93,41 +108,44 @@ if __name__ == '__main__':
     # random_mouse_movements(browser)
     # Настроить язык.
 
-    # Поиск входного поля, вставка значений
-    input_label = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
-                                                                                  '/html/body/div[1]/div[1]/div/div[3]'
-                                                                                  '/div[2]/div[1]/div[2]/div[1]/main/'
-                                                                                  'div[2]/nav/div/div[2]/div/div/'
-                                                                                  'div[1]/div/div/div/section/div/'
-                                                                                  'div[2]/div[1]/section/div/'
-                                                                                  'div[1]/d-textarea/div[1]')))
-    input_label.send_keys(input_text)
-    input_label.send_keys(Keys.ENTER)
+    with open("output.txt", "a", encoding="utf8") as output_file:
+        for i, block in enumerate(text_blocks):
+            app_log.info(f"Обработка блока №{i + 1}...")
+            # Поиск входного поля, вставка значений
+            input_label = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                          '/html/body/div[1]/div[1]/div/div[3]'
+                                                                                          '/div[2]/div[1]/div[2]/div[1]/main/'
+                                                                                          'div[2]/nav/div/div[2]/div/div/'
+                                                                                          'div[1]/div/div/div/section/div/'
+                                                                                          'div[2]/div[1]/section/div/'
+                                                                                          'div[1]/d-textarea/div[1]')))
+            input_label.send_keys(block)
+            input_label.send_keys(Keys.ENTER)
 
-    app_log.info("Ожидаю перевод 5 секунд...")
-    sleep(5)
+            app_log.info("Ожидаю перевод 5 секунд...")
+            sleep(5)
 
-    # Чтение выходных данных
-    try:
-        result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
-                                                                                      '/html/body/div[1]/div[1]/div/div[3]'
-                                                                                      '/div[2]/div[1]/div[2]/div[1]/main/'
-                                                                                      'div[2]/nav/div/div[2]/div/div/'
-                                                                                      'div[1]/div/div/div/section/div/'
-                                                                                      'div[2]/div[3]/section/div[1]/'
-                                                                                      'd-textarea/div')))
-    except Exception:
-        result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
-                                                                                       '/html/body/div[1]/div[1]/div/'
-                                                                                       'div[2]/div[2]/div[1]/div[2]/'
-                                                                                       'div[1]/main/div[2]/nav/div/'
-                                                                                       'div[2]/div/div/div[1]/div/div/'
-                                                                                       'div/section/div/div[2]/div[3]/'
-                                                                                       'section/div[1]/d-textarea/'
-                                                                                       'div')))
-    result_text = result_field.text
-    app_log.info("Вывод данных в файл...")
-    print(result_text)
+            # Чтение выходных данных
+            try:
+                result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                              '/html/body/div[1]/div[1]/div/div[3]'
+                                                                                              '/div[2]/div[1]/div[2]/div[1]/main/'
+                                                                                              'div[2]/nav/div/div[2]/div/div/'
+                                                                                              'div[1]/div/div/div/section/div/'
+                                                                                              'div[2]/div[3]/section/div[1]/'
+                                                                                              'd-textarea/div')))
+            except Exception:
+                result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                               '/html/body/div[1]/div[1]/div/'
+                                                                                               'div[2]/div[2]/div[1]/div[2]/'
+                                                                                               'div[1]/main/div[2]/nav/div/'
+                                                                                               'div[2]/div/div/div[1]/div/div/'
+                                                                                               'div/section/div/div[2]/div[3]/'
+                                                                                               'section/div[1]/d-textarea/'
+                                                                                               'div')))
+            result_text = result_field.text
+            app_log.info("Вывод данных в файл...")
+            output_file.write(result_text)
 
     browser.close()
     app_log.info("Закрываю браузер. Завершение работы программы.")
