@@ -107,18 +107,30 @@ if __name__ == '__main__':
     browser.get(BASE_URL)
     # random_mouse_movements(browser)
     # Настроить язык.
+    sleep(5)
 
     with open("output.txt", "a", encoding="utf8") as output_file:
         for i, block in enumerate(text_blocks):
             app_log.info(f"Обработка блока №{i + 1}...")
             # Поиск входного поля, вставка значений
-            input_label = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
-                                                                                          '/html/body/div[1]/div[1]/div/div[3]'
-                                                                                          '/div[2]/div[1]/div[2]/div[1]/main/'
-                                                                                          'div[2]/nav/div/div[2]/div/div/'
-                                                                                          'div[1]/div/div/div/section/div/'
-                                                                                          'div[2]/div[1]/section/div/'
-                                                                                          'div[1]/d-textarea/div[1]')))
+            try:
+                    
+                input_label = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                            '/html/body/div[1]/div[1]/div/div[3]'
+                                                                                            '/div[2]/div[1]/div[2]/div[1]/main/'
+                                                                                            'div[2]/nav/div/div[2]/div/div/'
+                                                                                            'div[1]/div/div/div/section/div/'
+                                                                                            'div[2]/div[1]/section/div/'
+                                                                                            'div[1]/d-textarea/div[1]')))
+            except Exception:
+                input_label = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                            "/html/body/div[1]/div[1]/div/div[3]"
+                                                                                            "/div[2]/div[1]/div[2]/div[1]/main/"
+                                                                                            "div[2]/nav/div/div[2]/div/div/"
+                                                                                            "div[1]/div/div/div/div/div/section/div/"
+                                                                                            "div[2]/div[1]/section/div/"
+                                                                                            "div[1]/d-textarea/div[1]")))
+            input_label.clear()
             input_label.send_keys(block)
             input_label.send_keys(Keys.ENTER)
 
@@ -135,14 +147,23 @@ if __name__ == '__main__':
                                                                                               'div[2]/div[3]/section/div[1]/'
                                                                                               'd-textarea/div')))
             except Exception:
-                result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
-                                                                                               '/html/body/div[1]/div[1]/div/'
-                                                                                               'div[2]/div[2]/div[1]/div[2]/'
-                                                                                               'div[1]/main/div[2]/nav/div/'
-                                                                                               'div[2]/div/div/div[1]/div/div/'
-                                                                                               'div/section/div/div[2]/div[3]/'
-                                                                                               'section/div[1]/d-textarea/'
-                                                                                               'div')))
+                try:
+                    result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                                '/html/body/div[1]/div[1]/div/'
+                                                                                                'div[2]/div[2]/div[1]/div[2]/'
+                                                                                                'div[1]/main/div[2]/nav/div/'
+                                                                                                'div[2]/div/div/div[1]/div/div/'
+                                                                                                'div/section/div/div[2]/div[3]/'
+                                                                                                'section/div[1]/d-textarea/'
+                                                                                                'div')))
+                except Exception:
+                    result_field = WebDriverWait(browser, 1).until(EC.presence_of_element_located((By.XPATH,
+                                                                                                '/html/body/div[1]/div[1]/div/'
+                                                                                                'div[3]/div[2]/div[1]/div[2]/'
+                                                                                                'div[1]/main/div[2]/nav/div/'
+                                                                                                'div[2]/div/div/div[1]/div/div/'
+                                                                                                'div/div/div/section/div/div[2]/'
+                                                                                                'div[3]/section/div[1]/d-textarea/div')))    
             result_text = result_field.text
             app_log.info("Вывод данных в файл...")
             output_file.write(result_text)
