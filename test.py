@@ -1,4 +1,6 @@
 import logging
+
+from selenium.common import ElementNotInteractableException
 from selenium.webdriver import Chrome, ChromeOptions, Keys
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
@@ -17,12 +19,22 @@ MAX_RETRIES = 3
 TIMEOUT = 15
 
 
+def is_clean_output():
+    """ Функция для очистки файла output.txt """
+    print("Перезаписать файл output.txt?")
+    is_clean = input("Введите Enter для пропуска или любой символ для подтверждения: ").lower()
+    if is_clean != "":
+        with open('output.txt', 'w'):
+            pass
+        logger.info("Файл output.txt был перезаписан")
+
+
 def get_driver():
     """Настройка и возврат экземпляра Chrome"""
     logger.info("Первичная настройка...")
     options = ChromeOptions()
     options.add_argument("--lang=ru")
-    options.add_argument("--headless=new")
+    # options.add_argument("--headless=new")
     options.add_argument("--disable-infobars")
     options.add_argument("--incognito")
     options.add_argument("--no-sandbox")
@@ -163,6 +175,7 @@ def translate_block(driver, text):
 
 
 def main():
+    is_clean_output()
     driver = get_driver()
     try:
         with open("input.txt", "r", encoding="utf-8") as f:
@@ -181,6 +194,9 @@ def main():
                 logger.info(f"Обработка блока {i + 1}/{len(text_blocks)}")
                 translated = translate_block(driver, block)
                 out_file.write(translated + "\n")
+    except ElementNotInteractableException:
+        logger.warning("Лимит бесплатного перевода исчерпан!")
+
     except Exception as e:
         logger.error(f"Ошибка глобального уровня: {e}")
 
