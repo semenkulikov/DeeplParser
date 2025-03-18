@@ -34,7 +34,7 @@ def get_driver():
     logger.info("Первичная настройка...")
     options = ChromeOptions()
     options.add_argument("--lang=ru")
-    # options.add_argument("--headless=new")
+    options.add_argument("--headless=new")
     options.add_argument("--disable-infobars")
     options.add_argument("--incognito")
     options.add_argument("--no-sandbox")
@@ -124,9 +124,35 @@ def set_russian_language(driver):
     except Exception as e:
         logger.error(f"Ошибка установки русского языка!")
 
+
 def split_text(text, block_size=1500):
-    """Разбивка текста на блоки"""
-    return [text[i:i + block_size] for i in range(0, len(text), block_size)]
+    """Умная разбивка текста с сохранением целостности"""
+    blocks = []
+    start = 0
+    while start < len(text):
+        end = min(start + block_size, len(text))
+        if end == len(text):
+            blocks.append(text[start:end])
+            break
+
+        # Поиск последнего подходящего разделителя
+        last_split = max(
+            text.rfind('.', start, end),
+            text.rfind('!', start, end),
+            text.rfind('?', start, end),
+            text.rfind('\n', start, end)
+        )
+
+        if last_split != -1 and (end - last_split) < 200:
+            end = last_split + 1
+
+        blocks.append(text[start:end].strip())
+        start = end
+    return blocks
+
+def clean_translation(text):
+    """Очистка перевода от артефактов"""
+    return text.replace('[...]', '').replace('…', '').strip()
 
 
 def translate_block(driver, text):
@@ -170,13 +196,15 @@ def translate_block(driver, text):
         return driver.find_element(By.CSS_SELECTOR, '[data-testid=translator-target-input]').text
 
     except Exception as e:
-        logger.error(f"Ошибка перевода: {str(e)}")
+        logger.error(f"Ошибка перевода!")
         raise
 
 
-def main():
-    is_clean_output()
+def main(start_block=0):
+
     driver = get_driver()
+
+    cur_block_number = start_block
     try:
         with open("input.txt", "r", encoding="utf-8") as f:
             text = f.read()
@@ -189,24 +217,30 @@ def main():
             EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-labelledby=translation-source-heading] d-textarea'))
         )
 
-        with open("output.txt", "w", encoding="utf-8") as out_file:
+        with open("output.txt", "a", encoding="utf-8") as out_file:
             for i, block in enumerate(text_blocks):
-                logger.info(f"Обработка блока {i + 1}/{len(text_blocks)}")
-                translated = translate_block(driver, block)
-                out_file.write(translated + "\n")
+                if i >= start_block:
+                    logger.info(f"Обработка блока {i + 1}/{len(text_blocks)}")
+                    translated = translate_block(driver, block)
+                    cleaned = clean_translation(translated)
+                    out_file.write(cleaned)
+                    cur_block_number = i + 1
     except ElementNotInteractableException:
         logger.warning("Лимит бесплатного перевода исчерпан!")
-
+        driver.quit()
+        main(start_block=cur_block_number)
     except Exception as e:
         logger.error(f"Ошибка глобального уровня: {e}")
-
     finally:
         logger.info("Очистка пост процессов...")
-        driver.quit()
+        if start_block == 0:
+            # Если не было рекурсии -> не был закрыт драйвер
+            driver.quit()
         os.system("taskkill /f /IM chrome.exe >nul 2>&1")
         os.system("taskkill /f /IM chromedriver.exe >nul 2>&1")
         logger.info("Работа завершена корректно.")
 
 
 if __name__ == "__main__":
+    is_clean_output()
     main()
