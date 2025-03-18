@@ -1,4 +1,5 @@
 import logging
+from time import sleep
 
 from selenium.common import ElementNotInteractableException
 from selenium.webdriver import Chrome, ChromeOptions, Keys
@@ -29,6 +30,22 @@ def is_clean_output():
         logger.info("Файл output.txt был перезаписан")
 
 
+def handle_popups(driver):
+    """Закрытие всех всплывающих окон"""
+    try:
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, '[data-testid="chrome-extension-toast"]')))
+
+        close_button = WebDriverWait(driver, 3).until(
+            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[aria-label="Закрыть"]')))
+
+        driver.execute_script("arguments[0].click();", close_button)
+        logger.info("Закрыто всплывающее окно")
+
+    except Exception as e:
+        sleep(5)  # Перехват не удался, но на всякий случай
+
+
 def get_driver():
     """Настройка и возврат экземпляра Chrome"""
     logger.info("Первичная настройка...")
@@ -49,6 +66,7 @@ def get_driver():
         options=options
     )
     driver.get(BASE_URL)
+    handle_popups(driver)
     accept_cookies(driver)
     set_russian_language(driver)
     return driver
