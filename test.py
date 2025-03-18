@@ -22,7 +22,7 @@ def get_driver():
     logger.info("Первичная настройка...")
     options = ChromeOptions()
     options.add_argument("--lang=ru")
-    # options.add_argument("--headless=new")
+    options.add_argument("--headless=new")
     options.add_argument("--disable-infobars")
     options.add_argument("--incognito")
     options.add_argument("--no-sandbox")
@@ -181,11 +181,15 @@ def main():
                 logger.info(f"Обработка блока {i + 1}/{len(text_blocks)}")
                 translated = translate_block(driver, block)
                 out_file.write(translated + "\n")
+    except Exception as e:
+        logger.error(f"Ошибка глобального уровня: {e}")
 
     finally:
+        logger.info("Очистка пост процессов...")
         driver.quit()
         os.system("taskkill /f /IM chrome.exe >nul 2>&1")
         os.system("taskkill /f /IM chromedriver.exe >nul 2>&1")
+        logger.info("Работа завершена корректно.")
 
 
 if __name__ == "__main__":
