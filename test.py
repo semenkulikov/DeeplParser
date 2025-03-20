@@ -230,9 +230,9 @@ def main(start_block=0):
         text_blocks = split_text(text)
         logger.info(f"Найдено блоков: {len(text_blocks)}")
 
-        # driver.get(BASE_URL)
         WebDriverWait(driver, TIMEOUT).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '[aria-labelledby=translation-source-heading] d-textarea'))
+            EC.presence_of_element_located((By.CSS_SELECTOR,
+                                            '[aria-labelledby=translation-source-heading] d-textarea'))
         )
 
         with open("output.txt", "a", encoding="utf-8") as out_file:
