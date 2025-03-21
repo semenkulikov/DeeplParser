@@ -219,7 +219,7 @@ def translate_block(driver, text):
 
 
 def main(start_block=0):
-
+    # Создание объекта браузера
     driver = get_driver()
 
     cur_block_number = start_block
